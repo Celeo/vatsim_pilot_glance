@@ -1,11 +1,16 @@
 import { Pilot } from "./api.ts";
 
+export const AIRPORTS = ["KSAN", "KLAX", "KSNA"] as const;
+
+export type Airport = typeof AIRPORTS[number];
+
 /**
  * Locations (lat & long) of supported airports.
  */
-export const AIRPORT_LOCATIONS: Record<string, [number, number]> = {
+export const AIRPORT_LOCATIONS: Record<Airport, [number, number]> = {
   KSAN: [32.7338, -117.1933],
   KLAX: [33.9416, -118.4085],
+  KSNA: [33.6762, -117.8675],
 };
 
 /**
@@ -37,7 +42,7 @@ function haversineDistance(
  */
 export function filterPilotDistance(
   pilots: Array<Pilot>,
-  airport: string,
+  airport: Airport,
   distance: number
 ): Array<Pilot> {
   const airportLocation = AIRPORT_LOCATIONS[airport];
