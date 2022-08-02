@@ -67,6 +67,7 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
     loop {
         if last_updated.elapsed() >= Duration::from_secs(15) {
             pilots = update_data(vatsim, &mut app, airport)?;
+            pilots.sort_unstable_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
             last_updated = Instant::now();
         }
 
