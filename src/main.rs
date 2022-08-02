@@ -17,7 +17,7 @@ mod models;
 mod state;
 mod static_data;
 
-use crate::api::Vatsim;
+use crate::{api::Vatsim, static_data::AIRPORTS};
 use clap::Parser;
 
 #[derive(Debug, Parser)]
@@ -30,12 +30,23 @@ struct Args {
     show_airports: bool,
 }
 
+/// Entry points.
 fn main() {
     let args = Args::parse();
     let vatsim = Vatsim::new().expect("Could not set up access to VATSIM API");
-    if args.airport.is_none() {
+    let airport = if let Some(a) = args.airport {
+        a
+    } else {
         eprintln!("No specified airport");
         return;
+    };
+    if !AIRPORTS.contains(&airport.as_str()) {
+        eprintln!(
+            "Airport \"{}\" not found in supported list: {}",
+            airport,
+            AIRPORTS.join(", ")
+        );
+        return;
     }
-    interface::run(&vatsim, &args.airport.unwrap()).expect("Could not set up interface");
+    interface::run(&vatsim, &airport).expect("Could not set up interface");
 }

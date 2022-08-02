@@ -2,7 +2,6 @@ use crate::models::{Pilot, RatingsData, Status, V3ResponseData};
 use anyhow::{anyhow, Result};
 use rand::seq::SliceRandom;
 use reqwest::blocking::{Client, ClientBuilder};
-use std::collections::HashMap;
 
 /// Initial VATSIM API requests are made to this endpoint.
 const STATUS_URL: &str = "https://status.vatsim.net/status.json";
@@ -11,7 +10,6 @@ const STATUS_URL: &str = "https://status.vatsim.net/status.json";
 pub struct Vatsim {
     client: Client,
     v3_url: String,
-    time_cache: HashMap<u64, f64>,
 }
 
 impl Vatsim {
@@ -27,7 +25,6 @@ impl Vatsim {
         Ok(Self {
             client,
             v3_url: url,
-            time_cache: HashMap::new(),
         })
     }
 

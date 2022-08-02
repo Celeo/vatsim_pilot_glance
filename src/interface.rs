@@ -5,6 +5,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use num_format::{Locale, ToFormattedString};
 use once_cell::sync::Lazy;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::time::{Duration, Instant};
@@ -29,11 +30,12 @@ fn update_data(vatsim: &Vatsim, app: &mut App, airport: &str) -> Result<Vec<(Pil
     let online_pilots = vatsim.get_online_pilots()?;
     let pilots_in_range =
         static_data::filter_pilot_distance(&online_pilots, airport, MAXIMUM_DISTANCE)?;
-    let pilot_times = pilots_in_range
+    let pilot_times: Vec<(Pilot, f64)> = pilots_in_range
         .par_iter()
-        .map(|&pilot| match app.pilot_time_cached(pilot.cid) {
-            Some(time) => (pilot.clone(), time),
-            None => {
+        .map(|&pilot| {
+            if let Some(time) = app.pilot_time_cached(pilot.cid) {
+                (pilot.clone(), time)
+            } else {
                 let time = vatsim
                     .get_pilot_time(pilot.cid)
                     .expect("Could not get pilot time");
@@ -41,6 +43,9 @@ fn update_data(vatsim: &Vatsim, app: &mut App, airport: &str) -> Result<Vec<(Pil
             }
         })
         .collect();
+    for (pilot, time) in &pilot_times {
+        app.update_pilot_time_cache(pilot.cid, *time);
+    }
     Ok(pilot_times)
 }
 
@@ -57,6 +62,7 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
 
     let mut last_updated = Instant::now();
     let mut pilots = update_data(vatsim, &mut app, airport)?;
+    pilots.sort_unstable_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
 
     loop {
         if last_updated.elapsed() >= Duration::from_secs(15) {
@@ -87,17 +93,17 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
                 Row::new([
                     Cell::from(pilot.callsign.clone()),
                     Cell::from(aircraft),
-                    Cell::from(time.to_string()),
+                    #[allow(clippy::cast_possible_truncation)]
+                    Cell::from((time.round() as i64).to_formatted_string(&Locale::en)),
                 ])
             });
-            // TODO sort rows
 
             let table = Table::new(rows)
                 .header(
                     Row::new([
                         Cell::from("Pilot callsign"),
                         Cell::from("Aircraft"),
-                        Cell::from("Time piloting"),
+                        Cell::from("Time piloting (hours)"),
                     ])
                     .style(*NORMAL_STYLE)
                     .height(1),

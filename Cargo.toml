@@ -16,6 +16,7 @@ categories = []
 anyhow = "1.0.58"
 clap = { version = "3.2.16", features = ["derive"] }
 crossterm = "0.24.0"
+num-format = "0.4.0"
 once_cell = "1.13.0"
 rand = "0.8.5"
 rayon = "1.5.3"
