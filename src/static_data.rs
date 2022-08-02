@@ -22,9 +22,7 @@ pub fn haversine_distance(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let r = 6371e3;
     let φ1 = (lat1 * PI) / 180_f64;
     let φ2 = (lat2 * PI) / 180_f64;
-    #[allow(non_snake_case)]
     let Δφ = ((lat2 - lat1) * PI) / 180_f64;
-    #[allow(non_snake_case)]
     let Δλ = ((lon2 - lon1) * PI) / 180_f64;
     let a = f64::sin(Δφ / 2_f64) * f64::sin(Δφ / 2_f64)
         + f64::cos(φ1) * f64::cos(φ2) * f64::sin(Δλ / 2_f64) * f64::sin(Δλ / 2_f64);

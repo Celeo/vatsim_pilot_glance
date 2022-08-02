@@ -1,43 +1,46 @@
-use crate::models::Pilot;
+use std::collections::HashMap;
 use tui::widgets::TableState;
 
 /// State of the interface.
 pub struct App {
-    tab_index: usize,
-    table_state: TableState,
-    pilots: Vec<Pilot>,
+    pub tab_index: usize,
+    pub table_state: TableState,
+    time_cache: HashMap<u64, f64>,
 }
 
 impl App {
     /// Create a new interface state from the VATSIM pilot data.
-    pub fn new(pilots: Vec<Pilot>) -> Self {
+    pub fn new() -> Self {
         let mut state = TableState::default();
         state.select(Some(0));
         Self {
             tab_index: 0,
             table_state: state,
-            pilots,
+            time_cache: HashMap::new(),
         }
     }
 
-    /// Update the stored pilots.
-    pub fn update(&mut self, pilots: Vec<Pilot>) {
-        self.pilots = pilots;
-    }
-
     /// Scroll down the table. Wrap-around supported.
-    pub fn down(&mut self) {
+    pub fn down(&mut self, row_count: usize) {
         let sel = self.table_state.selected().unwrap_or(0);
-        let length = self.pilots.len();
-        let next = if sel >= length - 1 { 0 } else { sel + 1 };
+        let next = if sel >= row_count - 1 { 0 } else { sel + 1 };
         self.table_state.select(Some(next));
     }
 
     /// Scroll up the table. Wrap-around supported.
-    pub fn up(&mut self) {
+    pub fn up(&mut self, row_count: usize) {
         let sel = self.table_state.selected().unwrap_or(0);
-        let length = self.pilots.len();
-        let next = if sel == 0 { length - 1 } else { sel - 1 };
+        let next = if sel == 0 { row_count - 1 } else { sel - 1 };
         self.table_state.select(Some(next));
+    }
+
+    /// Get an item from the pilot time cache.
+    pub fn pilot_time_cached(&self, cid: u64) -> Option<f64> {
+        self.time_cache.get(&cid).copied()
+    }
+
+    /// Update the pilot time cache.
+    pub fn update_pilot_time_cache(&mut self, cid: u64, time: f64) {
+        let _ = self.time_cache.insert(cid, time);
     }
 }

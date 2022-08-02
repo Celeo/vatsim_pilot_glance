@@ -13,6 +13,13 @@ pub struct Status {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FlightPlan {
+    pub aircraft: String,
+    pub aircraft_faa: String,
+    pub aircraft_short: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Pilot {
     pub cid: u64,
     pub name: String,
@@ -21,6 +28,7 @@ pub struct Pilot {
     pub longitude: f64,
     pub altitude: i64,
     pub transponder: String,
+    pub flight_plan: Option<FlightPlan>,
     pub logon_time: String,
 }
 

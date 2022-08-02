@@ -59,14 +59,12 @@ impl Vatsim {
                 response.status().as_u16()
             ));
         }
-        let mut data: V3ResponseData = response.json()?;
-        data.pilots
-            .sort_by(|a, b| a.callsign.partial_cmp(&b.callsign).unwrap());
+        let data: V3ResponseData = response.json()?;
         Ok(data.pilots)
     }
 
     /// Get the amount of time the user has spent as a pilot on the network.
-    pub fn get_pilot_time(&self, cid: i64) -> Result<f64> {
+    pub fn get_pilot_time(&self, cid: u64) -> Result<f64> {
         let response = self
             .client
             .get(format!(
