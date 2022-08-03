@@ -144,6 +144,11 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                     KeyCode::Char('q') => break,
                     KeyCode::Up => app.up(pilots.len()),
                     KeyCode::Down => app.down(pilots.len()),
+                    KeyCode::Char('o') => {
+                        let cid = pilots.get(app.tab_index).unwrap().0.cid;
+                        webbrowser::open(&format!("https://stats.vatsim.net/stats/{}", cid))
+                            .unwrap();
+                    }
                     _ => {}
                 }
             }
