@@ -61,6 +61,7 @@ fn update_data(
 }
 
 /// Run the TUI.
+#[allow(clippy::too_many_lines)]
 pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
     // configure terminal
     let mut stdout = std::io::stdout();
