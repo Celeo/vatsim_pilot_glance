@@ -1,6 +1,6 @@
 [package]
 name = "vatsim_pilot_glance"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Celeo <mattboulanger@fastmail.com>"]
 description = "TUI to show \"nearby\" VATISM pilot times"
