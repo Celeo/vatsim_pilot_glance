@@ -18,10 +18,13 @@ use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table},
+    text::Text,
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Terminal,
 };
 
+const INSTRUCTIONS: &str =
+    "   Refreshes every 15 seconds. Up down to move selected row. 'O' to view the pilot's online stats page.";
 /// Style applied to the table header row.
 static NORMAL_STYLE: Lazy<Style> = Lazy::new(|| Style::default().bg(Color::Blue));
 /// Style applied to non-header table rows.
@@ -83,8 +86,14 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .horizontal_margin(1)
-                .constraints([Constraint::Length(2), Constraint::Min(0)].as_ref())
+                .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
                 .split(f.size());
+
+            f.render_widget(
+                Paragraph::new(Text::from(INSTRUCTIONS))
+                    .block(Block::default().borders(Borders::ALL).title("Instructions")),
+                chunks[0],
+            );
 
             let rows = pilots.iter().map(|(pilot, ratings_data)| {
                 let aircraft = pilot.flight_plan.as_ref().map_or_else(
@@ -147,7 +156,7 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                     KeyCode::Char('o') => {
                         let cid = pilots.get(app.tab_index).unwrap().0.cid;
                         webbrowser::open(&format!("https://stats.vatsim.net/stats/{}", cid))
-                            .unwrap();
+                            .expect("Could not open web browser");
                     }
                     _ => {}
                 }
