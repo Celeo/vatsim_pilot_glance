@@ -40,4 +40,5 @@ pub struct V3ResponseData {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RatingsData {
     pub pilot: f64,
+    pub atc: f64,
 }

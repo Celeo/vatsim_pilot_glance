@@ -28,12 +28,19 @@ struct Args {
     /// Show supported airports
     #[clap(long)]
     show_airports: bool,
+    /// View distance
+    #[clap(short = 'd', long, default_value_t = 20.0)]
+    view_distance: f64,
 }
 
 /// Entry points.
 fn main() {
     let args = Args::parse();
     let vatsim = Vatsim::new().expect("Could not set up access to VATSIM API");
+    if args.show_airports {
+        println!("Supported airports: {}", AIRPORTS.join(", "));
+        return;
+    }
     let airport = if let Some(a) = args.airport {
         a
     } else {
@@ -48,5 +55,5 @@ fn main() {
         );
         return;
     }
-    interface::run(&vatsim, &airport).expect("Could not set up interface");
+    interface::run(&vatsim, &airport, args.view_distance).expect("Could not set up interface");
 }

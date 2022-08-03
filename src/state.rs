@@ -1,3 +1,4 @@
+use crate::models::RatingsData;
 use std::collections::HashMap;
 use tui::widgets::TableState;
 
@@ -5,7 +6,7 @@ use tui::widgets::TableState;
 pub struct App {
     pub tab_index: usize,
     pub table_state: TableState,
-    time_cache: HashMap<u64, f64>,
+    time_cache: HashMap<u64, RatingsData>,
 }
 
 impl App {
@@ -35,12 +36,14 @@ impl App {
     }
 
     /// Get an item from the pilot time cache.
-    pub fn pilot_time_cached(&self, cid: u64) -> Option<f64> {
-        self.time_cache.get(&cid).copied()
+    pub fn pilot_time_cached(&self, cid: u64) -> Option<RatingsData> {
+        self.time_cache
+            .get(&cid)
+            .map(std::borrow::ToOwned::to_owned)
     }
 
     /// Update the pilot time cache.
-    pub fn update_pilot_time_cache(&mut self, cid: u64, time: f64) {
-        let _ = self.time_cache.insert(cid, time);
+    pub fn update_pilot_time_cache(&mut self, cid: u64, ratings_data: &RatingsData) {
+        let _ = self.time_cache.insert(cid, ratings_data.clone());
     }
 }

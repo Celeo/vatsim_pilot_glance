@@ -1,4 +1,9 @@
-use crate::{api::Vatsim, models::Pilot, state::App, static_data};
+use crate::{
+    api::Vatsim,
+    models::{Pilot, RatingsData},
+    state::App,
+    static_data,
+};
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -17,8 +22,6 @@ use tui::{
     Terminal,
 };
 
-/// Maximum distance to look at users.
-const MAXIMUM_DISTANCE: f64 = 20.0;
 /// Style applied to the table header row.
 static NORMAL_STYLE: Lazy<Style> = Lazy::new(|| Style::default().bg(Color::Blue));
 /// Style applied to non-header table rows.
@@ -26,31 +29,36 @@ static SELECTED_STYLE: Lazy<Style> =
     Lazy::new(|| Style::default().add_modifier(Modifier::REVERSED));
 
 /// Update the app's data.
-fn update_data(vatsim: &Vatsim, app: &mut App, airport: &str) -> Result<Vec<(Pilot, f64)>> {
+fn update_data(
+    vatsim: &Vatsim,
+    app: &mut App,
+    airport: &str,
+    view_distance: f64,
+) -> Result<Vec<(Pilot, RatingsData)>> {
     let online_pilots = vatsim.get_online_pilots()?;
     let pilots_in_range =
-        static_data::filter_pilot_distance(&online_pilots, airport, MAXIMUM_DISTANCE)?;
-    let pilot_times: Vec<(Pilot, f64)> = pilots_in_range
+        static_data::filter_pilot_distance(&online_pilots, airport, view_distance)?;
+    let pilot_times: Vec<(Pilot, RatingsData)> = pilots_in_range
         .par_iter()
         .map(|&pilot| {
             if let Some(time) = app.pilot_time_cached(pilot.cid) {
                 (pilot.clone(), time)
             } else {
                 let time = vatsim
-                    .get_pilot_time(pilot.cid)
+                    .get_ratings_times(pilot.cid)
                     .expect("Could not get pilot time");
                 (pilot.clone(), time)
             }
         })
         .collect();
     for (pilot, time) in &pilot_times {
-        app.update_pilot_time_cache(pilot.cid, *time);
+        app.update_pilot_time_cache(pilot.cid, time);
     }
     Ok(pilot_times)
 }
 
 /// Run the TUI.
-pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
+pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
     // configure terminal
     let mut stdout = std::io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -61,13 +69,13 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
     let mut app = App::new();
 
     let mut last_updated = Instant::now();
-    let mut pilots = update_data(vatsim, &mut app, airport)?;
-    pilots.sort_unstable_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+    let mut pilots = update_data(vatsim, &mut app, airport, view_distance)?;
+    pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
 
     loop {
         if last_updated.elapsed() >= Duration::from_secs(15) {
-            pilots = update_data(vatsim, &mut app, airport)?;
-            pilots.sort_unstable_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+            pilots = update_data(vatsim, &mut app, airport, view_distance)?;
+            pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
             last_updated = Instant::now();
         }
 
@@ -78,7 +86,7 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
                 .constraints([Constraint::Length(2), Constraint::Min(0)].as_ref())
                 .split(f.size());
 
-            let rows = pilots.iter().map(|(pilot, time)| {
+            let rows = pilots.iter().map(|(pilot, ratings_data)| {
                 let aircraft = pilot.flight_plan.as_ref().map_or_else(
                     || "???",
                     |fp| {
@@ -95,7 +103,11 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
                     Cell::from(pilot.callsign.clone()),
                     Cell::from(aircraft),
                     #[allow(clippy::cast_possible_truncation)]
-                    Cell::from((time.round() as i64).to_formatted_string(&Locale::en)),
+                    Cell::from(
+                        (ratings_data.pilot.round() as i64).to_formatted_string(&Locale::en),
+                    ),
+                    #[allow(clippy::cast_possible_truncation)]
+                    Cell::from((ratings_data.atc.round() as i64).to_formatted_string(&Locale::en)),
                 ])
             });
 
@@ -105,14 +117,16 @@ pub fn run(vatsim: &Vatsim, airport: &str) -> Result<()> {
                         Cell::from("Pilot callsign"),
                         Cell::from("Aircraft"),
                         Cell::from("Time piloting (hours)"),
+                        Cell::from("Time controlling (hours)"),
                     ])
                     .style(*NORMAL_STYLE)
                     .height(1),
                 )
                 .widths(&[
-                    Constraint::Percentage(33),
-                    Constraint::Percentage(33),
-                    Constraint::Percentage(33),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
                 ])
                 .block(
                     Block::default()
