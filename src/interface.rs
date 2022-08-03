@@ -123,10 +123,10 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                     .height(1),
                 )
                 .widths(&[
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(25),
+                    Constraint::Percentage(15),
+                    Constraint::Percentage(15),
+                    Constraint::Percentage(35),
+                    Constraint::Percentage(35),
                 ])
                 .block(
                     Block::default()
