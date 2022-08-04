@@ -25,7 +25,7 @@ use tui::{
 };
 
 const INSTRUCTIONS: &str =
-    "   Refreshes every 15 seconds. Up down to select a row, then 'O' to view the pilot's online stats page.";
+    "   Auto-refreshes every 15 sec. Up/down to select row, then 'O' to view their stats online.";
 /// Style applied to the table header row.
 static NORMAL_STYLE: Lazy<Style> = Lazy::new(|| Style::default().bg(Color::Blue));
 /// Style applied to non-header table rows.
@@ -162,7 +162,7 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(format!("Pilots near {}", airport)),
+                        .title(format!("Pilots within {} nm of {}", view_distance, airport)),
                 )
                 .highlight_style(*SELECTED_STYLE);
             f.render_stateful_widget(table, chunks[1], &mut app.table_state);
