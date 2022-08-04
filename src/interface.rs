@@ -5,6 +5,7 @@ use crate::{
     static_data,
 };
 use anyhow::Result;
+use chrono::{SecondsFormat, Utc};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -24,7 +25,7 @@ use tui::{
 };
 
 const INSTRUCTIONS: &str =
-    "   Refreshes every 15 seconds. Up down to move selected row. 'O' to view the pilot's online stats page.";
+    "   Refreshes every 15 seconds. Up down to select a row, then 'O' to view the pilot's online stats page.";
 /// Style applied to the table header row.
 static NORMAL_STYLE: Lazy<Style> = Lazy::new(|| Style::default().bg(Color::Blue));
 /// Style applied to non-header table rows.
@@ -72,6 +73,7 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
     terminal.hide_cursor()?;
     let mut app = App::new();
 
+    let mut last_updated_time = Utc::now();
     let mut last_updated = Instant::now();
     let mut pilots = update_data(vatsim, &mut app, airport, view_distance)?;
     pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
@@ -81,6 +83,8 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
             pilots = update_data(vatsim, &mut app, airport, view_distance)?;
             pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
             last_updated = Instant::now();
+            last_updated_time = Utc::now();
+            app.table_state.select(None);
         }
 
         let _ = terminal.draw(|f| {
@@ -90,10 +94,27 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                 .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
                 .split(f.size());
 
+            let title_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Length((INSTRUCTIONS.len() + 5).try_into().unwrap()),
+                    Constraint::Min(1),
+                    Constraint::Length(28),
+                ])
+                .split(chunks[0]);
+
             f.render_widget(
                 Paragraph::new(Text::from(INSTRUCTIONS))
                     .block(Block::default().borders(Borders::ALL).title("Instructions")),
-                chunks[0],
+                title_chunks[0],
+            );
+            f.render_widget(
+                Paragraph::new(Text::from(format!(
+                    "{: ^26}",
+                    last_updated_time.to_rfc3339_opts(SecondsFormat::Secs, true)
+                )))
+                .block(Block::default().borders(Borders::ALL).title("Last updated")),
+                title_chunks[2],
             );
 
             let rows = pilots.iter().map(|(pilot, ratings_data)| {
@@ -143,8 +164,7 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                         .borders(Borders::ALL)
                         .title(format!("Pilots near {}", airport)),
                 )
-                .highlight_style(*SELECTED_STYLE)
-                .highlight_symbol(">> ");
+                .highlight_style(*SELECTED_STYLE);
             f.render_stateful_widget(table, chunks[1], &mut app.table_state);
         })?;
 
