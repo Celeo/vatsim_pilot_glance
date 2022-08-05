@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use std::{collections::HashMap, f64::consts::PI};
 
 /// List of supported airports.
-pub static AIRPORTS: Lazy<Vec<&'static str>> = Lazy::new(|| vec!["KSAN", "KLAX", "KSNA"]);
+pub static AIRPORTS: Lazy<Vec<&'static str>> = Lazy::new(|| vec!["KSAN", "KLAX", "KSNA", "KLAS"]);
 
 /// Mapping of airport locations for use in calculating distance.
 static AIRPORT_LOCATIONS: Lazy<HashMap<&'static str, (f64, f64)>> = Lazy::new(|| {
@@ -12,6 +12,7 @@ static AIRPORT_LOCATIONS: Lazy<HashMap<&'static str, (f64, f64)>> = Lazy::new(||
     let _ = m.insert("KSAN", (32.7338, -117.1933));
     let _ = m.insert("KLAX", (33.9416, -118.4085));
     let _ = m.insert("KSNA", (33.6762, -117.8675));
+    let _ = m.insert("KLAS", (36.084, -115.1537));
     m
 });
 
