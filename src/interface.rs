@@ -172,6 +172,7 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => break,
+                    KeyCode::Esc => app.table_state.select(None),
                     KeyCode::Up => app.up(pilots.len()),
                     KeyCode::Down => app.down(pilots.len()),
                     KeyCode::Char('o') => {
