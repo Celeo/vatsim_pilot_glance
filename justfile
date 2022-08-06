@@ -8,7 +8,7 @@ build:
 
 release-windows:
 	@cargo b --release --target x86_64-pc-windows-gnu
-	@cp target/x86_64-pc-windows-gnu/release/vatsim_pilot_glance.exe .
+	@cd target/x86_64-pc-windows-gnu/release/
 	-explorer.exe .
 
 build-all: build release-windows

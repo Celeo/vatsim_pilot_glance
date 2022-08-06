@@ -11,49 +11,41 @@
     unused_results
 )]
 
-mod api;
 mod interface;
-mod models;
 mod state;
-mod static_data;
 
-use crate::{api::Vatsim, static_data::AIRPORTS};
 use clap::Parser;
+use vatsim_utils::{distance::AIRPORTS, live_api::Vatsim};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 struct Args {
     /// Airport to monitor the area around
     airport: Option<String>,
-    /// Show supported airports
-    #[clap(long)]
-    show_airports: bool,
     /// View distance
     #[clap(short = 'd', long, default_value_t = 20.0)]
     view_distance: f64,
 }
 
 /// Entry points.
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
-    let vatsim = Vatsim::new().expect("Could not set up access to VATSIM API");
-    if args.show_airports {
-        println!("Supported airports: {}", AIRPORTS.join(", "));
-        return;
-    }
-    let airport = if let Some(a) = args.airport {
-        a
+    let airport = if let Some(airport_str) = args.airport {
+        if let Some(airport_ref) = AIRPORTS.iter().find(|&ap| ap.identifier == airport_str) {
+            airport_ref
+        } else {
+            eprintln!("Unknown airport \"{}\"", airport_str);
+            return;
+        }
     } else {
         eprintln!("No specified airport");
         return;
     };
-    if !AIRPORTS.contains(&airport.as_str()) {
-        eprintln!(
-            "Airport \"{}\" not found in supported list: {}",
-            airport,
-            AIRPORTS.join(", ")
-        );
-        return;
-    }
-    interface::run(&vatsim, &airport, args.view_distance).expect("Could not set up interface");
+    let vatsim = Vatsim::new()
+        .await
+        .expect("Could not set up access to VATSIM API");
+    interface::run(&vatsim, airport, args.view_distance)
+        .await
+        .expect("Could not set up interface");
 }

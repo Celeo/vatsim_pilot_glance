@@ -1,9 +1,4 @@
-use crate::{
-    api::Vatsim,
-    models::{Pilot, RatingsData},
-    state::App,
-    static_data,
-};
+use crate::state::App;
 use anyhow::Result;
 use chrono::{SecondsFormat, Utc};
 use crossterm::{
@@ -13,7 +8,6 @@ use crossterm::{
 };
 use num_format::{Locale, ToFormattedString};
 use once_cell::sync::Lazy;
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::time::{Duration, Instant};
 use tui::{
     backend::CrosstermBackend,
@@ -22,6 +16,12 @@ use tui::{
     text::Text,
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Terminal,
+};
+use vatsim_utils::{
+    distance::{haversine, Airport},
+    live_api::Vatsim,
+    models::{Pilot, RatingsTimeData},
+    rest_api::get_ratings_times,
 };
 
 const INSTRUCTIONS: &str =
@@ -33,37 +33,50 @@ static SELECTED_STYLE: Lazy<Style> =
     Lazy::new(|| Style::default().add_modifier(Modifier::REVERSED));
 
 /// Update the app's data.
-fn update_data(
+async fn update_data(
     vatsim: &Vatsim,
     app: &mut App,
-    airport: &str,
+    airport: &Airport,
     view_distance: f64,
-) -> Result<Vec<(Pilot, RatingsData)>> {
-    let online_pilots = vatsim.get_online_pilots()?;
-    let pilots_in_range =
-        static_data::filter_pilot_distance(&online_pilots, airport, view_distance)?;
-    let pilot_times: Vec<(Pilot, RatingsData)> = pilots_in_range
-        .par_iter()
-        .map(|&pilot| {
-            if let Some(time) = app.pilot_time_cached(pilot.cid) {
-                (pilot.clone(), time)
-            } else {
-                let time = vatsim
-                    .get_ratings_times(pilot.cid)
-                    .expect("Could not get pilot time");
-                (pilot.clone(), time)
-            }
+) -> Result<Vec<(Pilot, RatingsTimeData)>> {
+    // get current online pilots, filter to those in range of the airport
+    let v3_data = vatsim.get_v3_data().await.unwrap();
+    let pilots_in_range: Vec<_> = v3_data
+        .pilots
+        .iter()
+        .filter(|&pilot| {
+            haversine(
+                pilot.latitude,
+                pilot.longitude,
+                airport.latitude,
+                airport.longitude,
+            ) < view_distance
         })
+        .cloned()
         .collect();
+
+    // retrieve position times from cache or REST API
+    let mut pilot_times = Vec::new();
+    for pilot in pilots_in_range {
+        if let Some(time) = app.pilot_time_cached(pilot.cid) {
+            pilot_times.push((pilot, time));
+        } else {
+            let time = get_ratings_times(pilot.cid).await.unwrap();
+            pilot_times.push((pilot, time));
+        }
+    }
+
+    // update cache
     for (pilot, time) in &pilot_times {
         app.update_pilot_time_cache(pilot.cid, time);
     }
+
     Ok(pilot_times)
 }
 
 /// Run the TUI.
 #[allow(clippy::too_many_lines)]
-pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
+pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Result<()> {
     // configure terminal
     let mut stdout = std::io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -71,22 +84,24 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.hide_cursor()?;
-    let mut app = App::new();
 
+    // data and timestamps
+    let mut app = App::new();
+    let mut last_updated = Instant::now() - Duration::from_secs(20);
+    let mut pilots = Vec::new();
     let mut last_updated_time = Utc::now();
-    let mut last_updated = Instant::now();
-    let mut pilots = update_data(vatsim, &mut app, airport, view_distance)?;
-    pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
 
     loop {
+        // update data every 15 seconds (API refresh rate)
         if last_updated.elapsed() >= Duration::from_secs(15) {
-            pilots = update_data(vatsim, &mut app, airport, view_distance)?;
+            pilots = update_data(vatsim, &mut app, airport, view_distance).await?;
             pilots.sort_unstable_by(|(_, a), (_, b)| a.pilot.partial_cmp(&b.pilot).unwrap());
             last_updated = Instant::now();
             last_updated_time = Utc::now();
             app.table_state.select(None);
         }
 
+        // draw the UI
         let _ = terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -159,15 +174,15 @@ pub fn run(vatsim: &Vatsim, airport: &str, view_distance: f64) -> Result<()> {
                     Constraint::Percentage(35),
                     Constraint::Percentage(35),
                 ])
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(format!("Pilots within {} nm of {}", view_distance, airport)),
-                )
+                .block(Block::default().borders(Borders::ALL).title(format!(
+                    "Pilots within {} nm of {}",
+                    view_distance, airport.identifier
+                )))
                 .highlight_style(*SELECTED_STYLE);
             f.render_stateful_widget(table, chunks[1], &mut app.table_state);
         })?;
 
+        // keyboard interaction
         if event::poll(Duration::from_secs(15))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
