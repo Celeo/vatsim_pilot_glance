@@ -21,11 +21,11 @@ use vatsim_utils::{
     distance::{haversine, Airport},
     live_api::Vatsim,
     models::{Pilot, RatingsTimeData},
-    rest_api::get_ratings_times,
+    rest_api::{get_ratings_times, stats_url},
 };
 
 const INSTRUCTIONS: &str =
-    "   Auto-refreshes every 15 sec. Up/down to select row, then 'O' to view their stats online.";
+    "   Auto-refreshes every 15 sec. Up/down to select row & 'O' to view stats.";
 /// Style applied to the table header row.
 static NORMAL_STYLE: Lazy<Style> = Lazy::new(|| Style::default().bg(Color::Blue));
 /// Style applied to non-header table rows.
@@ -191,9 +191,10 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
                     KeyCode::Up => app.up(pilots.len()),
                     KeyCode::Down => app.down(pilots.len()),
                     KeyCode::Char('o') => {
-                        let cid = pilots.get(app.tab_index).unwrap().0.cid;
-                        webbrowser::open(&format!("https://stats.vatsim.net/stats/{}", cid))
-                            .expect("Could not open web browser");
+                        if let Some(index) = app.table_state.selected() {
+                            let cid = pilots.get(index).unwrap().0.cid;
+                            webbrowser::open(&stats_url(cid)).expect("Could not open web browser")
+                        }
                     }
                     _ => {}
                 }

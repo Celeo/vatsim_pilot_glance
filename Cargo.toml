@@ -1,9 +1,9 @@
 [package]
 name = "vatsim_pilot_glance"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Celeo <mattboulanger@fastmail.com>"]
-description = "TUI to show nearby VATISM pilot times"
+description = "TUI to show nearby VATISM network times"
 readme = "README.md"
 homepage = "https://github.com/celeo/vatsim_pilot_glance"
 repository = "https://github.com/celeo/vatsim_pilot_glance"

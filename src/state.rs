@@ -4,7 +4,6 @@ use vatsim_utils::models::RatingsTimeData;
 
 /// State of the interface.
 pub struct App {
-    pub tab_index: usize,
     pub table_state: TableState,
     time_cache: HashMap<u64, RatingsTimeData>,
 }
@@ -13,7 +12,6 @@ impl App {
     /// Create a new interface state from the VATSIM pilot data.
     pub fn new() -> Self {
         Self {
-            tab_index: 0,
             table_state: TableState::default(),
             time_cache: HashMap::new(),
         }
