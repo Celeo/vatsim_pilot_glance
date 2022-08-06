@@ -193,7 +193,7 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
                     KeyCode::Char('o') => {
                         if let Some(index) = app.table_state.selected() {
                             let cid = pilots.get(index).unwrap().0.cid;
-                            webbrowser::open(&stats_url(cid)).expect("Could not open web browser")
+                            webbrowser::open(&stats_url(cid)).expect("Could not open web browser");
                         }
                     }
                     _ => {}
