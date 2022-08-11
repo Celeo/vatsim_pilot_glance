@@ -6,6 +6,8 @@ TUI to show VATSIM users near an airport and their piloting (and controlling) ti
 
 Intended use is to spot new pilots in order to plan extra time for them.
 
+![screenshot.png](screenshot.png)
+
 ## Building
 
 1. Install Rust
