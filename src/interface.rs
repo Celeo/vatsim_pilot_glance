@@ -87,7 +87,7 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
 
     // data and timestamps
     let mut app = App::new();
-    let mut last_updated = Instant::now() - Duration::from_secs(20);
+    let mut last_updated = Instant::now().checked_sub(Duration::from_secs(20)).unwrap();
     let mut pilots = Vec::new();
     let mut last_updated_time = Utc::now();
 

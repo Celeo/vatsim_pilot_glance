@@ -35,7 +35,7 @@ async fn main() {
         if let Some(airport_ref) = AIRPORTS.iter().find(|&ap| ap.identifier == airport_str) {
             airport_ref
         } else {
-            eprintln!("Unknown airport \"{}\"", airport_str);
+            eprintln!("Unknown airport \"{airport_str}\"");
             return;
         }
     } else {
