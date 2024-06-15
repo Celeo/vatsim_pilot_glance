@@ -39,9 +39,7 @@ impl App {
 
     /// Get an item from the pilot time cache.
     pub fn pilot_time_cached(&self, cid: u64) -> Option<RatingsTimeData> {
-        self.time_cache
-            .get(&cid)
-            .map(std::borrow::ToOwned::to_owned)
+        self.time_cache.get(&cid).map(ToOwned::to_owned)
     }
 
     /// Update the pilot time cache.
