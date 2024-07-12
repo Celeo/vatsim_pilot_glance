@@ -60,10 +60,8 @@ async fn update_data(
     for pilot in pilots_in_range {
         if let Some(time) = app.pilot_time_cached(pilot.cid) {
             pilot_times.push((pilot, time));
-        } else {
-            if let Ok(time) = get_ratings_times(pilot.cid).await {
-                pilot_times.push((pilot, time));
-            }
+        } else if let Ok(time) = get_ratings_times(pilot.cid).await {
+            pilot_times.push((pilot, time));
         }
     }
 
