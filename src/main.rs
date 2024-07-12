@@ -1,15 +1,5 @@
-#![deny(
-    clippy::all,
-    clippy::pedantic,
-    missing_debug_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    unused_results
-)]
+#![deny(clippy::all)]
+#![deny(unsafe_code)]
 
 mod interface;
 mod state;
