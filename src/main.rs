@@ -1,11 +1,11 @@
 #![deny(clippy::all)]
 #![deny(unsafe_code)]
 
-mod interface;
-mod state;
-
 use clap::Parser;
 use vatsim_utils::{distance::AIRPORTS, live_api::Vatsim};
+
+mod interface;
+mod state;
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]

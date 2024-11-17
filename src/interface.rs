@@ -144,6 +144,16 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
                         }
                     },
                 );
+                let transponder = match pilot.flight_plan.as_ref() {
+                    Some(fp) => {
+                        if pilot.transponder == fp.assigned_transponder {
+                            pilot.transponder.clone()
+                        } else {
+                            format!("{} ({})", pilot.transponder, fp.assigned_transponder)
+                        }
+                    }
+                    None => pilot.transponder.clone(),
+                };
                 Row::new([
                     Cell::from(pilot.callsign.clone()),
                     Cell::from(aircraft),
@@ -153,6 +163,7 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
                     ),
                     #[allow(clippy::cast_possible_truncation)]
                     Cell::from((ratings_data.atc.round() as i64).to_formatted_string(&Locale::en)),
+                    Cell::from(transponder),
                 ])
             });
 
@@ -161,17 +172,19 @@ pub async fn run(vatsim: &Vatsim, airport: &Airport, view_distance: f64) -> Resu
                     Row::new([
                         Cell::from("Pilot callsign"),
                         Cell::from("Aircraft"),
-                        Cell::from("Time piloting (hours)"),
-                        Cell::from("Time controlling (hours)"),
+                        Cell::from("Time piloting"),
+                        Cell::from("Time controlling"),
+                        Cell::from("Transponder"),
                     ])
                     .style(*NORMAL_STYLE)
                     .height(1),
                 )
                 .widths(&[
-                    Constraint::Percentage(15),
-                    Constraint::Percentage(15),
-                    Constraint::Percentage(35),
-                    Constraint::Percentage(35),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
                 ])
                 .block(Block::default().borders(Borders::ALL).title(format!(
                     "Pilots within {} nm of {}",
